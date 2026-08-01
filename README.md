@@ -17,7 +17,7 @@ For a quick single-window check, choose the practice battle on the start screen.
 
 The live game is deployed at:
 
-https://robinl.github.io/arithmetic_annihilation_multiplayer/
+https://www.robinlinacre.com/arithmetic_annihilation_multiplayer/
 
 Every push to `main` runs the test suite, builds the Vite app and publishes `dist/` through GitHub Pages.
 
