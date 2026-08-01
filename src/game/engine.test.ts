@@ -29,16 +29,16 @@ describe('GameEngine', () => {
     expect(state.units.some((unit) => unit.teamId === 'solar' && unit.type === 'scout')).toBe(true)
   })
 
-  it('caps tower and generator upgrades at level five', () => {
+  it('uses the original sixteen tower levels while generators cap at five', () => {
     const engine = new GameEngine(players)
     engine.apply({ kind: 'buildTower', teamId: 'solar', type: 'spray', col: 4, row: 3 })
     const towerId = engine.snapshot().towers[0].id
-    for (let level = 0; level < 7; level += 1) {
+    for (let level = 0; level < 20; level += 1) {
       engine.apply({ kind: 'upgradeTower', teamId: 'solar', towerId })
       engine.apply({ kind: 'upgradeSpawner', teamId: 'solar', type: 'brute' })
     }
     const state = engine.snapshot()
-    expect(state.towers[0].level).toBe(5)
+    expect(state.towers[0].level).toBe(16)
     expect(state.spawners.find((spawner) => spawner.teamId === 'solar' && spawner.type === 'brute')?.level).toBe(5)
   })
 

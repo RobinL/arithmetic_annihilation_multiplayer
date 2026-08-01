@@ -1,5 +1,5 @@
 import {
-  BALANCE_RULES, baseCell, cellCentre, cellHeight, cellWidth, getTowerStats, isBaseFootprintCell,
+  BALANCE_RULES, baseCell, cellCentre, cellHeight, cellWidth, getMaxTowerLevel, getTowerStats, isBaseFootprintCell,
   isCellOnTeamSide, MONSTER_META, MONSTER_TYPES, TEAM_META, terrainAt, TOWER_META, WORLD,
 } from './config'
 import {
@@ -185,7 +185,7 @@ export class GameEngine {
 
   private upgradeTower(teamId: TeamId, towerId: number) {
     const tower = this.state.towers.find((candidate) => candidate.id === towerId && candidate.teamId === teamId)
-    if (!tower || tower.level >= 5) return false
+    if (!tower || tower.level >= getMaxTowerLevel(tower.type)) return false
     tower.level += 1
     tower.cooldownMs = Math.min(tower.cooldownMs, getTowerStats(tower).cooldownMs * .5)
     this.rebuildFlowFields()
@@ -221,10 +221,9 @@ export class GameEngine {
     const meta = MONSTER_META[type]
     const row = [1, 3, 5, 7, 9][lane]
     const point = cellCentre(teamId === 'solar' ? 0 : WORLD.cols - 1, row)
-    const radius = ({ scout: 10, runner: 12, brute: 15, titan: 18 } as Record<MonsterType, number>)[type]
     this.state.units.push({
       id: this.nextId++, teamId, type, lane, x: point.x, y: point.y, vx: 0, vy: 0,
-      health: meta.health, maxHealth: meta.health, radius, hurtFlashMs: 0, lastProgressDistance: Number.POSITIVE_INFINITY,
+      health: meta.health, maxHealth: meta.health, radius: meta.radius, hurtFlashMs: 0, lastProgressDistance: Number.POSITIVE_INFINITY,
       stalledSeconds: 0, panicSecondsRemaining: 0, panicStartDistance: Number.POSITIVE_INFINITY, isStuck: false,
     })
     return true
@@ -319,7 +318,7 @@ export class GameEngine {
         const progress = costAt(this.flowFields[unit.teamId], unit)
         if (progress < bestCost || (progress === bestCost && distance < bestDistance)) { target = unit; bestCost = progress; bestDistance = distance }
       }
-      if (!target) { tower.cooldownMs = 80; continue }
+      if (!target) continue
       const direction = normalize(target.x - origin.x, target.y - origin.y)
       const boost = 1 + this.state.teams[tower.teamId].comebackBoost * BALANCE_RULES.towerDamageWeight
       if (tower.type === 'bolt') {
@@ -345,7 +344,8 @@ export class GameEngine {
           const angle = baseAngle + (index - (count - 1) / 2) * spread
           const projectile = this.createProjectile(tower, 'missile', origin, Math.cos(angle) * speed * .55, Math.sin(angle) * speed * .55, stats.damage * boost, 6, 3600)
           projectile.targetId = target.id; projectile.speed = speed; projectile.turnRate = stats.missileTurnRate ?? 2.3
-          projectile.homingDelayMs = count > 1 ? 160 : 0; projectile.trailScale = 1 + (tower.level - 1) / 4
+          projectile.homingDelayMs = count > 1 ? 160 : 0
+          projectile.trailScale = 1 + (tower.level - 1) / Math.max(1, getMaxTowerLevel('missile') - 1)
         }
       } else {
         const speed = stats.bulletSpeed ?? 280
@@ -450,7 +450,11 @@ export class GameEngine {
   }
 
   private updateBalance() {
-    if (!BALANCE_RULES.enabled) return
+    if (!BALANCE_RULES.enabled) {
+      this.state.teams.solar.comebackBoost = 0
+      this.state.teams.lunar.comebackBoost = 0
+      return
+    }
     const solarRatio = this.state.teams.solar.baseHealth / this.state.teams.solar.maxBaseHealth
     const lunarRatio = this.state.teams.lunar.baseHealth / this.state.teams.lunar.maxBaseHealth
     const gap = Math.abs(solarRatio - lunarRatio)

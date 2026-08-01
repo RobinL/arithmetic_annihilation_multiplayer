@@ -4,7 +4,7 @@ import { GameCanvas } from './components/GameCanvas'
 import { MathsModal } from './components/MathsModal'
 import { GameEngine } from './game/engine'
 import { DEFAULT_MATHS_LEVEL, MATHS_LEVELS, MathsQuestionGenerator } from './game/maths'
-import { isBaseFootprintCell, MONSTER_META, MONSTER_TYPES, TEAM_META, terrainAt, TOWER_META, TOWER_TYPES, WORLD } from './game/config'
+import { getMaxTowerLevel, getTowerUpgradeChallenge, isBaseFootprintCell, MONSTER_META, MONSTER_TYPES, TEAM_META, terrainAt, TOWER_META, TOWER_TYPES, WORLD } from './game/config'
 import type { GameAction, GameSnapshot, MathsLevel, MathsQuestion, MonsterType, PlayerProfile, ScheduledAction, TeamId, TowerType, WireMessage } from './game/types'
 import './styles.css'
 
@@ -292,12 +292,12 @@ export default function App() {
     const existing = snapshot.towers.find((tower) => tower.col === col && tower.row === row)
     if (existing) {
       if (existing.teamId !== localTeamId) return
-      if (existing.level >= 5) {
+      if (existing.level >= getMaxTowerLevel(existing.type)) {
         flashNotice('That tower is already at maximum power.')
         return
       }
       const meta = TOWER_META[existing.type]
-      askForAction(`Upgrade ${meta.name} to level ${existing.level + 1}`, Math.min(3, meta.challenge + Math.floor(existing.level / 2)), {
+      askForAction(`Upgrade ${meta.name} to level ${existing.level + 1}`, getTowerUpgradeChallenge(existing.type, existing.level + 1), {
         kind: 'upgradeTower', teamId: localTeamId, towerId: existing.id,
       })
       return

@@ -328,9 +328,13 @@ export function GameCanvas({ snapshot, localTeamId, selectedTower, onGridClick }
         // right, so its turrets face right; lunar turrets retain the native direction.
         drawSprite(ctx, TOWER_META[tower.type].sprite, point.x, point.y, 56, tower.teamId !== localTeamId, tower.teamId === 'solar', 0, birthScale * pulse, birthScale / pulse)
         ctx.fillStyle = '#101614'
+        const markerColumns = 4
+        const markerSpacing = 5
+        const markerStartX = point.x - ((markerColumns - 1) * markerSpacing) / 2
+        const markerStartY = point.y + 7
         for (let level = 0; level < tower.level; level += 1) {
           ctx.beginPath()
-          ctx.arc(point.x - 8 + (level % 5) * 4, point.y + 15, 1.6, 0, Math.PI * 2)
+          ctx.arc(markerStartX + (level % markerColumns) * markerSpacing, markerStartY + Math.floor(level / markerColumns) * markerSpacing, 1.8, 0, Math.PI * 2)
           ctx.fill()
         }
       }
